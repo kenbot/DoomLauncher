@@ -9,11 +9,13 @@ namespace DoomLauncher.Handlers.Sync
     {
         public static readonly SyncResult EMPTY = 
             new SyncResult(new List<IGameFile>(), new List<IGameFile>(), 
-                new List<InvalidFile>(), new Dictionary<IGameFile, Image>(), new List<IGameFile>());  
+                new List<InvalidFile>(), new List<IGameFile>(), 
+                new Dictionary<IGameFile, Image>(), new List<IGameFile>());  
 
         public List<IGameFile> AddedGameFiles { get; }
         public List<IGameFile> UpdatedGameFiles { get; }
         public List<InvalidFile> InvalidFiles { get; }
+        public List<IGameFile> SkippedFiles { get; }
         public Dictionary<IGameFile, Image> TitlePics { get; }
         public List<IGameFile> FailedTitlePicFiles { get; }
 
@@ -25,13 +27,14 @@ namespace DoomLauncher.Handlers.Sync
         }
 
         private SyncResult(List<IGameFile> addedGameFiles, List<IGameFile> updatedGameFiles, List<InvalidFile> invalidFiles,
-            Dictionary<IGameFile, Image> titlePics, List<IGameFile> failedTitlePicFiles)
+            List<IGameFile> skippedFiles, Dictionary<IGameFile, Image> titlePics, List<IGameFile> failedTitlePicFiles)
         {
             AddedGameFiles = new List<IGameFile>(addedGameFiles);
             UpdatedGameFiles = new List<IGameFile>(updatedGameFiles);
             InvalidFiles = new List<InvalidFile>(invalidFiles);
             TitlePics = titlePics;
             FailedTitlePicFiles = new List<IGameFile>(failedTitlePicFiles);
+            SkippedFiles = skippedFiles;
         }
 
         public static SyncResult operator +(SyncResult a, SyncResult b) => a.Combine(b);
@@ -42,6 +45,7 @@ namespace DoomLauncher.Handlers.Sync
                 addedGameFiles: CombineLists(AddedGameFiles, other.AddedGameFiles),
                 updatedGameFiles: CombineLists(UpdatedGameFiles, other.UpdatedGameFiles),
                 invalidFiles: CombineLists(InvalidFiles, other.InvalidFiles),
+                skippedFiles: CombineLists(SkippedFiles, other.SkippedFiles),
                 titlePics: CombineDictionariesKeepLatest(TitlePics, other.TitlePics),
                 failedTitlePicFiles: CombineLists(FailedTitlePicFiles, other.FailedTitlePicFiles));
         }
@@ -55,6 +59,7 @@ namespace DoomLauncher.Handlers.Sync
                 addedGameFiles: new List<IGameFile>() { gameFile },
                 updatedGameFiles: new List<IGameFile>(),
                 invalidFiles: new List<InvalidFile>(),
+                skippedFiles: new List<IGameFile>(),
                 titlePics: new Dictionary<IGameFile, Image>(),
                 failedTitlePicFiles: new List<IGameFile>());
         }
@@ -65,6 +70,7 @@ namespace DoomLauncher.Handlers.Sync
                 addedGameFiles: new List<IGameFile>(),
                 updatedGameFiles: new List<IGameFile>() { gameFile },
                 invalidFiles: new List<InvalidFile>(),
+                skippedFiles: new List<IGameFile>(),
                 titlePics: new Dictionary<IGameFile, Image>(),
                 failedTitlePicFiles: new List<IGameFile>());
         }
@@ -75,6 +81,18 @@ namespace DoomLauncher.Handlers.Sync
                 addedGameFiles: new List<IGameFile>(),
                 updatedGameFiles: new List<IGameFile>(),
                 invalidFiles: new List<InvalidFile>() { new InvalidFile(filename, reason) },
+                skippedFiles: new List<IGameFile>(),
+                titlePics: new Dictionary<IGameFile, Image>(),
+                failedTitlePicFiles: new List<IGameFile>());
+        }
+
+        public static SyncResult SkippedFile(IGameFile gameFile)
+        {
+            return new SyncResult(
+                addedGameFiles: new List<IGameFile>(),
+                updatedGameFiles: new List<IGameFile>(),
+                invalidFiles: new List<InvalidFile>(),
+                skippedFiles: new List<IGameFile>() { gameFile },
                 titlePics: new Dictionary<IGameFile, Image>(),
                 failedTitlePicFiles: new List<IGameFile>());
         }
@@ -85,6 +103,7 @@ namespace DoomLauncher.Handlers.Sync
                 addedGameFiles: new List<IGameFile>(),
                 updatedGameFiles: new List<IGameFile>() ,
                 invalidFiles: new List<InvalidFile>(),
+                skippedFiles: new List<IGameFile>(),
                 titlePics: new Dictionary<IGameFile, Image>() { { gameFile, image } },
                 failedTitlePicFiles: new List<IGameFile>());
         }
@@ -95,6 +114,7 @@ namespace DoomLauncher.Handlers.Sync
                 addedGameFiles: new List<IGameFile>(),
                 updatedGameFiles: new List<IGameFile>(),
                 invalidFiles: new List<InvalidFile>(),
+                skippedFiles: new List<IGameFile>(),
                 titlePics: new Dictionary<IGameFile, Image>(),
                 failedTitlePicFiles: new List<IGameFile>() { gameFile });
         }

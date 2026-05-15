@@ -8,6 +8,7 @@ using System.Linq;
 using DoomLauncher.Handlers.Sync;
 using System.Collections.Generic;
 using DoomLauncher.Interfaces;
+using DoomLauncher.DataSources;
 
 namespace UnitTest.Tests
 {
@@ -62,6 +63,30 @@ namespace UnitTest.Tests
             Assert.IsFalse(string.IsNullOrEmpty(gameFile.Description));
             Assert.IsNotNull(gameFile.ReleaseDate);
             Assert.IsNotNull(gameFile.Downloaded);
+        }
+
+        [TestMethod]
+        public void TestSyncLockedFile()
+        {
+            string file = "uroburos.zip";
+
+            var gameFile = new GameFile() { FileName = file };
+            database.InsertGameFile(gameFile);
+            Assert.IsNotNull(database.GetGameFile(file));
+            Assert.IsNotNull(gameFile.GameFileID);
+            Assert.AreEqual(1, database.GetGameFilesCount());
+
+            var locks = new GameFileLocks();
+            var lockSucceeded = locks.TryLock(gameFile);
+            Assert.IsTrue(lockSucceeded);
+
+            SyncLibraryHandler handler = CreateSyncLibraryHandler(gameFileLocks: locks);
+
+            File.Copy(Path.Combine("Resources", file), Path.Combine(s_filedir, file));
+            var syncResult = handler.SyncManyFiles(new string[] { "uroburos.zip" });
+
+            Assert.AreEqual(1, syncResult.SkippedFiles.Count);
+            Assert.AreEqual(1, database.GetGameFilesCount());
         }
 
         [TestMethod]
@@ -441,7 +466,7 @@ namespace UnitTest.Tests
             Assert.IsFalse(gameFile.IsSyncNeeded);
         }
 
-        private SyncLibraryHandler CreateSyncLibraryHandler(bool pullTitlepic = false, FileManagement fileManagement = FileManagement.Managed)
+        private SyncLibraryHandler CreateSyncLibraryHandler(bool pullTitlepic = false, FileManagement fileManagement = FileManagement.Managed, IGameFileLocks gameFileLocks = null)
         {
             var directories = new DirectoriesConfiguration 
             { 
@@ -459,7 +484,10 @@ namespace UnitTest.Tests
                 new TitlePicSyncAction(database, DataCache.Instance.DefaultPalette, DataCache.Instance.HexenPalette, DataCache.Instance.HereticPalette).OnlyIf(pullTitlepic)
             };
 
-            return new SyncLibraryHandler(database, CreateDirectoryAdapater(), directories, fileManagement, syncActions);
+            if (gameFileLocks == null)
+                gameFileLocks = new GameFileLocks();
+
+            return new SyncLibraryHandler(database, CreateDirectoryAdapater(), directories, fileManagement, gameFileLocks, syncActions);
         }
 
         private static DirectoryDataSourceAdapter CreateDirectoryAdapater()

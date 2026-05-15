@@ -22,15 +22,17 @@ namespace DoomLauncher
         private readonly FileManagement m_fileManagement;
         private readonly List<ISyncAction> m_syncActions;
         private readonly IDirectoriesConfiguration m_directories;
+        private readonly IGameFileLocks m_gameFileLocks;
 
         public SyncLibraryHandler(IGameFileDataSourceAdapter dbDataSource, IGameFileDataSourceAdapter syncDataSource,
-            IDirectoriesConfiguration directories, FileManagement fileManagement, List<ISyncAction> syncActions)
+            IDirectoriesConfiguration directories, FileManagement fileManagement, IGameFileLocks gameFileLocks, List<ISyncAction> syncActions)
         {
             m_dbDataSource = dbDataSource;
             m_syncDataSource = syncDataSource;
             m_syncActions = syncActions;
             m_fileManagement = fileManagement;
             m_directories = directories;
+            m_gameFileLocks = gameFileLocks;
         }
 
         public SyncResult SyncManyFiles(string[] files)
@@ -54,35 +56,49 @@ namespace DoomLauncher
             if (resultSoFar.Failed)
                 return resultSoFar;
 
-            GameFileDataNeeded?.Invoke(new GameFileDataNeededEvent(fileToUpdate));
+            // Lock game file, unless already locked
+            if (existingFile != null && !m_gameFileLocks.TryLock(existingFile))
+            {
+                return resultSoFar + SyncResult.SkippedFile(existingFile);
+            }
 
             try
             {
-                using (IArchiveReader reader = new RecursiveArchiveReader(CreateRootArchiveReader(fileToUpdate), CreateBranchArchiveReader))
+                GameFileDataNeeded?.Invoke(new GameFileDataNeededEvent(fileToUpdate));
+
+                try
                 {
-                    resultSoFar += PopulateGameFileFromArchive(fileToUpdate, reader);
+                    using (IArchiveReader reader = new RecursiveArchiveReader(CreateRootArchiveReader(fileToUpdate), CreateBranchArchiveReader))
+                    {
+                        resultSoFar += PopulateGameFileFromArchive(fileToUpdate, reader);
+                    }
                 }
-            }
-            catch (IOException)
-            {
-                fileToUpdate.Map = string.Empty;
-                resultSoFar += SyncResult.InvalidFile(fileName, "File is in use/Not found");
-            }
-            catch (InvalidDataException)
-            {
-                fileToUpdate.Map = string.Empty;
-                resultSoFar += SyncResult.InvalidFile(fileName, "Zip archive invalid or contained an improper pk3");
-            }
-            catch (Exception ex)
-            {
-                fileToUpdate.Map = string.Empty;
-                var errorMsg = string.Concat("Unexpected exception - ", ex.Message, ex.StackTrace);
-                resultSoFar += SyncResult.InvalidFile(fileName, errorMsg);
-            }
+                catch (IOException)
+                {
+                    fileToUpdate.Map = string.Empty;
+                    resultSoFar += SyncResult.InvalidFile(fileName, "File is in use/Not found");
+                }
+                catch (InvalidDataException)
+                {
+                    fileToUpdate.Map = string.Empty;
+                    resultSoFar += SyncResult.InvalidFile(fileName, "Zip archive invalid or contained an improper pk3");
+                }
+                catch (Exception ex)
+                {
+                    fileToUpdate.Map = string.Empty;
+                    var errorMsg = string.Concat("Unexpected exception - ", ex.Message, ex.StackTrace);
+                    resultSoFar += SyncResult.InvalidFile(fileName, errorMsg);
+                }
 
-            fileToUpdate.IsSyncNeeded = false;
+                fileToUpdate.IsSyncNeeded = false;
 
-            resultSoFar += Upsert(existingFile, fileToUpdate);
+                resultSoFar += Upsert(existingFile, fileToUpdate);
+            }
+            finally
+            {
+                if (existingFile != null)
+                    m_gameFileLocks.Unlock(existingFile);
+            }
 
             return resultSoFar;
         }

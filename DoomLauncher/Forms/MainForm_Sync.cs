@@ -2,6 +2,7 @@
 using DoomLauncher.Handlers.Sync;
 using DoomLauncher.Interfaces;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
@@ -15,6 +16,8 @@ namespace DoomLauncher
     public partial class MainForm
     {
         private readonly System.Threading.SemaphoreSlim m_syncSemaphore = new System.Threading.SemaphoreSlim(1, 1);
+        private readonly IGameFileLocks m_gameFileLocks = new GameFileLocks();
+
 
         private async Task<SyncResult> SyncLocalDatabase(string[] fileNames, FileManagement fileManagement, bool updateViews, ITagData tag = null)
         {
@@ -27,10 +30,11 @@ namespace DoomLauncher
 
             try
             {
-                var pg = ProgressBarStart(ProgressBarType.Sync);
-                pg.Text = $"Syncing {fileNames.Count()} files...";
+                //var pg = ProgressBarStart(ProgressBarType.Sync);
+                //pg.Text = $"Syncing {fileNames.Count()} files...";
+
                 SyncResult syncResult = await Task.Run(() => ExecuteSyncHandler(fileNames, fileManagement));
-                ProgressBarEnd(ProgressBarType.Sync);
+                //ProgressBarEnd(ProgressBarType.Sync);
                 SyncLocalDatabaseComplete(syncResult, updateViews);
                 return syncResult;
             }
@@ -124,8 +128,9 @@ namespace DoomLauncher
                     new GameConfSyncAction(),
                 };
 
+
                 handler = new SyncLibraryHandler(DataSourceAdapter, DirectoryDataSourceAdapter, AppConfiguration, 
-                    fileManagement, syncActions);
+                    fileManagement, m_gameFileLocks, syncActions);
 
                 handler.SyncFileChanged += syncHandler_SyncFileChanged;
                 handler.GameFileDataNeeded += syncHandler_GameFileDataNeeded;
