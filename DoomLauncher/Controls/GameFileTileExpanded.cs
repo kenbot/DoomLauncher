@@ -1,4 +1,5 @@
-﻿using DoomLauncher.Interfaces;
+﻿using DoomLauncher.Handlers.Sync;
+using DoomLauncher.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -27,9 +28,11 @@ namespace DoomLauncher
         private string m_maps;
         private string m_release;
         private string m_played;
+        private IGameFileLocks m_gameFileLocks;
 
-        public GameFileTileExpanded()
+        public GameFileTileExpanded(IGameFileLocks gameFileLocks)
         {
+            m_gameFileLocks = gameFileLocks;
             InitializeComponent();
 
             BackColor = ColorTheme.Current.WindowDark;

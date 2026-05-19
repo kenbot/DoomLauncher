@@ -34,7 +34,7 @@ namespace DoomLauncher
 
             List<ITabView> tabViews = new List<ITabView>();
             ColumnConfig[] colConfig = DataCache.Instance.GetColumnConfig();
-            GameFileViewFactory = new GameFileViewFactory(this, AppConfiguration.GameFileViewType);
+            GameFileViewFactory = new GameFileViewFactory(this, AppConfiguration.GameFileViewType, m_gameFileLocks);
             GameFileTileManager.Instance.Init(GameFileViewFactory);
 
             if (AppConfiguration.VisibleViews.Contains(TabKeys.RecentKey))
@@ -88,7 +88,7 @@ namespace DoomLauncher
             };
 
             IdGamesDataSourceAdapter = new IdGamesDataAdapater(AppConfiguration.IdGamesUrl, AppConfiguration.ApiPage, AppConfiguration.MirrorUrl);
-            var factory = new GameFileViewFactory(this, GameFileViewType.GridView);
+            var factory = new GameFileViewFactory(this, GameFileViewType.GridView, m_gameFileLocks);
             IdGamesTabViewCtrl tabViewIdGames = new IdGamesTabViewCtrl(TabKeys.IdGamesKey, StaticTagData.GetFavoriteName(TabKeys.IdGamesKey), IdGamesDataSourceAdapter, DefaultGameFileSelectFields, factory);
             SetupTabBase(tabViewIdGames, columnTextFields, colConfig, mnuIdGames, false);
             return tabViewIdGames;

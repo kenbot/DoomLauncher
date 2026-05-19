@@ -1,4 +1,5 @@
-﻿using System.Windows.Forms;
+﻿using DoomLauncher.Handlers.Sync;
+using System.Windows.Forms;
 
 namespace DoomLauncher
 {
@@ -12,10 +13,13 @@ namespace DoomLauncher
 
         private readonly ToolTipDisplayHandler m_toolTipDisplayHandler;
 
-        public GameFileViewFactory(MainForm form, GameFileViewType defaultType)
+        private readonly IGameFileLocks m_gameFileLocks;
+
+        public GameFileViewFactory(MainForm form, GameFileViewType defaultType, IGameFileLocks gameFileLocks)
         {
             DefaultType = defaultType;
             m_toolTipDisplayHandler = new ToolTipDisplayHandler(form);
+            m_gameFileLocks = gameFileLocks;
         }
 
         public static bool IsBaseViewTypeChange(GameFileViewType type, GameFileViewType other)
@@ -78,9 +82,9 @@ namespace DoomLauncher
         public GameFileTileBase CreateTile()
         {
             if (DefaultType == GameFileViewType.TileView)
-                return new GameFileTileExpanded { Margin = TileMargin };
+                return new GameFileTileExpanded(m_gameFileLocks) { Margin = TileMargin };
             else if (DefaultType == GameFileViewType.TileViewCondensed)
-                return new GameFileTile { Margin = TileMargin };
+                return new GameFileTile(m_gameFileLocks) { Margin = TileMargin };
 
             return null;
         }

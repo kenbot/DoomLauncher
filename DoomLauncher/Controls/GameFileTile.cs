@@ -1,4 +1,5 @@
-﻿using DoomLauncher.Interfaces;
+﻿using DoomLauncher.Handlers.Sync;
+using DoomLauncher.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -29,9 +30,15 @@ namespace DoomLauncher
         private bool m_new;
         private bool m_loadingImage;
         private Image m_setImage;
+        private IGameFileLocks m_gameFileLocks;
 
-        public GameFileTile()
+        public GameFileTile(IGameFileLocks gameFileLocks)
         {
+            m_gameFileLocks = gameFileLocks;
+            m_gameFileLocks.GameFileLocked += OnGameFileLocked;
+            m_gameFileLocks.GameFileUnlocked += OnGameFileUnlocked;
+
+
             InitializeComponent();
 
             DpiScale dpiScale = new DpiScale(CreateGraphics());
@@ -61,6 +68,21 @@ namespace DoomLauncher
         }
 
         public static int GetImageHeight(int imageWidth) => (int)(imageWidth / (4.0 / 3.0));
+        private void OnGameFileLocked(int gameFileId)
+        {
+            if (gameFileId == GameFile?.GameFileID)
+            {
+                pb.BeginInvoke(new Action(() => { pb.Visible = false; }));
+            }
+        }
+
+        private void OnGameFileUnlocked(int gameFileId)
+        {
+            if (gameFileId == GameFile?.GameFileID)
+            {
+                pb.BeginInvoke(new Action(() => { pb.Visible = true; }));
+            }
+        }
 
         public int GetStandardHeight(DpiScale dpiScale)
         {

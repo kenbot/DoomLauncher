@@ -1,4 +1,6 @@
-﻿namespace DoomLauncher
+﻿using DoomLauncher.Handlers.Sync;
+
+namespace DoomLauncher
 {
     partial class GameFileTileExpanded
     {
@@ -28,7 +30,7 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.gameTile = new DoomLauncher.GameFileTile();
+            this.gameTile = new DoomLauncher.GameFileTile(m_gameFileLocks);
             this.flpMain = new DoomLauncher.FlowLayoutPanelDB();
             this.pnlData = new System.Windows.Forms.Panel();
             this.flpMain.SuspendLayout();

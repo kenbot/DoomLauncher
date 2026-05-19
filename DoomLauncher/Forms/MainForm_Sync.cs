@@ -30,11 +30,11 @@ namespace DoomLauncher
 
             try
             {
-                //var pg = ProgressBarStart(ProgressBarType.Sync);
-                //pg.Text = $"Syncing {fileNames.Count()} files...";
+                var pg = ProgressBarStart(ProgressBarType.Sync);
+                pg.Text = $"Syncing {fileNames.Count()} files...";
 
                 SyncResult syncResult = await Task.Run(() => ExecuteSyncHandler(fileNames, fileManagement));
-                //ProgressBarEnd(ProgressBarType.Sync);
+                ProgressBarEnd(ProgressBarType.Sync);
                 SyncLocalDatabaseComplete(syncResult, updateViews);
                 return syncResult;
             }
